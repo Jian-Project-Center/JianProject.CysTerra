@@ -3,9 +3,14 @@ using Cryville.EEW.Report;
 using System;
 using System.Globalization;
 using Cryville.EEW;
+using static Cryville.EEW.TagTypeKeys;
 
 namespace JianProject.CysTerra {
 	public sealed class JianReportGenerator : IContextedGenerator<JianEvent, IReportGeneratorContext, ReportModel?> {
+		static readonly TagTypeKey TagQualityCenc = "Quality:CENC";
+		static readonly TagTypeKey TagQualityJmaEew = "Quality:JMAEEW";
+		static readonly TagTypeKey TagSerial = "Serial";
+
 		readonly JianSource _source;
 
 		public JianReportGenerator(JianSource source) {
@@ -21,7 +26,8 @@ namespace JianProject.CysTerra {
 
 			using var lres = new LocalizedResource("", ref culture);
 			var res = lres.RootMessageStringSet;
-			var titleKey = TitleKey(e);
+			var titleKey = JianTitles.TitleKey(e);
+			var accuracy = JianTitles.AccuracyOrder(e);
 			var result = new ReportModel {
 				Source = JianSources.AuthorityLabel(culture, e.Agency, e.ForwardAgency),
 				Title = res.GetStringRequired(titleKey),
@@ -49,12 +55,11 @@ namespace JianProject.CysTerra {
 					DateTime.SpecifyKind(issued, DateTimeKind.Utc) + TimeSpan.FromMinutes(e.IsFinal || e.IsCancel ? 10 : 3));
 			}
 			if (e.IsCancel) {
-				// 取消报立即失效展示窗口，同时保留上方较长 Invalidated 下限作兜底
 				result.InvalidatedTime = new DateTimeOffset(DateTime.UtcNow);
 			}
 
 			result.GroupKeys.Add(new ReportUnitKey(e.Agency, e.UnitId));
-			result.RevisionKey = new ReportRevisionKey(e.Serial ?? 0, e.IsCancel, e.IsFinal);
+			result.RevisionKey = BuildRevisionKey(e);
 
 			if (e.Latitude is double lat && e.Longitude is double lon && e.Magnitude is double mag
 				&& e.DepthKm is double depth && e.OriginUtc is DateTime hypoTime) {
@@ -62,7 +67,19 @@ namespace JianProject.CysTerra {
 					(float)lat, (float)lon, DateTime.SpecifyKind(hypoTime, DateTimeKind.Utc), (float)mag, (float)depth));
 			}
 
-			// Intensity first: list card left block uses the key property color from SeverityScheme.
+			var jmaAssumptionOnly = JianTitles.IsJmaEew(e.Agency) && e.IsAssumption
+				&& (e.Magnitude is null || e.Magnitude is <= 1.0);
+			if (jmaAssumptionOnly) {
+				// 对齐 Wolfx：低精度假定震源时只标 Quality，不铺震级/深度
+				var qualityKey = e.Magnitude is null ? "PropertyQualityValueLevel" : "PropertyQualityValuePLUM";
+				result.Properties.Add(new(
+					TagQualityJmaEew,
+					null,
+					res.GetStringRequired(qualityKey),
+					-1f) { AccuracyOrder = accuracy });
+				return result;
+			}
+
 			if (!string.IsNullOrEmpty(e.Intensity)) {
 				var intensityKey = JianIntensity.KeyForAgency(e.Agency);
 				result.Properties.Add(new(
@@ -70,34 +87,51 @@ namespace JianProject.CysTerra {
 					res.GetStringRequired("PropertyIntensity"),
 					e.Intensity,
 					context.SeverityScheme,
-					JianIntensity.RawValue(intensityKey, e.Intensity)) { AccuracyOrder = 30 });
+					JianIntensity.RawValue(intensityKey, e.Intensity)) { AccuracyOrder = accuracy });
 			}
 
 			if (e.Magnitude is double magnitude) {
 				result.Properties.Add(new(
-					"Magnitude",
+					Magnitude,
 					res.GetStringRequired("PropertyMagnitude"),
 					magnitude.ToString("0.0", culture),
 					context.SeverityScheme,
-					magnitude) { AccuracyOrder = 30 });
+					magnitude) { AccuracyOrder = accuracy });
 			}
 
 			if (e.DepthKm is double depthKm) {
 				result.Properties.Add(new(
-					"HypocenterDepth",
+					HypocenterDepth,
 					res.GetStringRequired("PropertyDepth"),
 					string.Format(culture, res.GetStringRequired("PropertyDepthValue"), depthKm.ToString("0.0", culture)),
 					context.SeverityScheme,
-					depthKm) { AccuracyOrder = 30 });
+					depthKm) { AccuracyOrder = accuracy });
 			}
 
-			if (e.Serial is int serial) {
+			if (JianTitles.EmitsSerial(e) && e.Serial is int serial) {
 				result.Properties.Add(new(
-					"Serial",
+					TagSerial,
 					res.GetStringRequired("PropertySerial"),
 					serial.ToString(culture),
 					context.SeverityScheme,
 					serial) { AccuracyOrder = 40 });
+			}
+
+			// Fan / Wolfx CENC：Quality:CENC → 正式测定 / 自动测定
+			if (JianTitles.IsCencBulletin(e) && e.IsReviewed is bool reviewed) {
+				result.Properties.Add(new(
+					TagQualityCenc,
+					null,
+					res.GetStringRequired(reviewed ? "PropertyQualityValueReviewed" : "PropertyQualityValueAutomatic"),
+					-1f) { AccuracyOrder = accuracy });
+			}
+
+			if (JianTitles.IsJmaEew(e.Agency) && e.IsAssumption) {
+				result.Properties.Add(new(
+					TagQualityJmaEew,
+					null,
+					res.GetStringRequired("PropertyQualityValueLevel"),
+					-1f) { AccuracyOrder = accuracy });
 			}
 
 			if (!string.IsNullOrEmpty(e.Detail) && e.Detail != e.Place && e.Detail != e.Title && e.Detail != e.PlaceZh) {
@@ -110,30 +144,45 @@ namespace JianProject.CysTerra {
 			return result;
 		}
 
-		static bool IsJmaEew(string agency) {
-			var head = agency.Trim().ToLowerInvariant().Replace('_', '-').Split(':')[0];
-			return head == "jma-eew";
-		}
-
-		static string TitleKey(JianEvent e) {
-			if (e.IsCancel) {
-				return e.Kind == JianKind.Tsunami ? "TitleTsunamiCancel" : "TitleCancel";
+		static IReportRevisionKey BuildRevisionKey(JianEvent e) {
+			if (JianTitles.IsCencBulletin(e)) {
+				return new ReviewedRevisionKey(e.IsReviewed == true);
 			}
-			if (e.Kind == JianKind.EarlyWarning && IsJmaEew(e.Agency)) {
-				// 对齐 Wolfx / Fan Studio：紧急地震速报（预报/警报），不写「地震预警更新」
-				return e.IsWarn ? "TitleJmaEewWarning" : "TitleJmaEewForecast";
+			if (JianTitles.IsHko(e)) {
+				return new VerifiedRevisionKey(e.IsVerified == true);
 			}
-			return e.Kind switch {
-				// CEA / CWA / KMA / ShakeAlert 等：地震预警（续报用「更新」）
-				JianKind.EarlyWarning => e.Serial is > 1 ? "TitleEewUpdate" : "TitleEew",
-				JianKind.Bulletin => "TitleBulletin",
-				JianKind.Tsunami => "TitleTsunami",
-				JianKind.Weather => "TitleWeather",
-				_ => "TitleOther",
-			};
+			if (e.Kind == JianKind.Bulletin) {
+				return new EmptyRevisionKey();
+			}
+			return new ReportRevisionKey(e.Serial ?? 0, e.IsCancel, e.IsFinal);
 		}
 
 		sealed record ReportUnitKey(string Agency, string UnitId) : IReportUnitKey { }
+
+		sealed record EmptyRevisionKey : IReportRevisionKey {
+			public bool IsComparableWith(IReportRevisionKey obj) => obj is EmptyRevisionKey;
+			public int CompareTo(IReportRevisionKey? obj) => 0;
+		}
+
+		sealed record ReviewedRevisionKey(bool IsReviewed) : IReportRevisionKey {
+			public bool IsComparableWith(IReportRevisionKey obj) => obj is ReviewedRevisionKey;
+			public int CompareTo(IReportRevisionKey? obj) {
+				if (obj is not ReviewedRevisionKey other) {
+					throw new ArgumentException("Mismatched revision key type.");
+				}
+				return IsReviewed.CompareTo(other.IsReviewed);
+			}
+		}
+
+		sealed record VerifiedRevisionKey(bool IsVerified) : IReportRevisionKey {
+			public bool IsComparableWith(IReportRevisionKey obj) => obj is VerifiedRevisionKey;
+			public int CompareTo(IReportRevisionKey? obj) {
+				if (obj is not VerifiedRevisionKey other) {
+					throw new ArgumentException("Mismatched revision key type.");
+				}
+				return IsVerified.CompareTo(other.IsVerified);
+			}
+		}
 
 		sealed record ReportRevisionKey(int Number, bool Cancel, bool Final) : IReportRevisionKey {
 			public int? Serial => Number > 0 ? Number : null;

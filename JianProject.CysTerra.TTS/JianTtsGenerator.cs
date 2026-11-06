@@ -24,7 +24,11 @@ namespace JianProject.CysTerra.TTS {
 
 			var spoken = new StringBuilder();
 			spoken.Append(string.Format(culture, res.GetStringRequired("TtsLead"), JianSources.AuthoritySpeechLabel(culture, e.Agency, e.ForwardAgency)));
-			spoken.Append(res.GetStringRequired(TitleKey(e)));
+			spoken.Append(res.GetStringRequired(JianTitles.TitleKey(e)));
+			if (JianTitles.IsCencBulletin(e) && e.IsReviewed is bool reviewed) {
+				var type = res.GetStringRequired(reviewed ? "TypeReviewed" : "TypeAutomatic");
+				spoken.Append(string.Format(culture, res.GetStringRequired("TtsCencType"), type));
+			}
 			var place = e.PlaceZh ?? e.Place ?? e.Title;
 			if (!string.IsNullOrEmpty(place)) {
 				spoken.Append(string.Format(culture, res.GetStringRequired("TtsPlace"), place));
@@ -51,7 +55,6 @@ namespace JianProject.CysTerra.TTS {
 				_ => 10,
 			};
 
-			// 重复标题只用机构中文名，避免 TTS 朗读英文 "Jian Project"
 			var repeatTitle = JianSources.AuthoritySpeechLabel(culture, e.Agency, e.ForwardAgency);
 			if (string.IsNullOrWhiteSpace(repeatTitle)) {
 				repeatTitle = res.GetStringRequired("TtsRepeatTitle");
@@ -96,27 +99,6 @@ namespace JianProject.CysTerra.TTS {
 				return "eew_2";
 			}
 			return "eew_1";
-		}
-
-		static bool IsJmaEew(string agency) {
-			var head = agency.Trim().ToLowerInvariant().Replace('_', '-').Split(':')[0];
-			return head == "jma-eew";
-		}
-
-		static string TitleKey(JianEvent e) {
-			if (e.IsCancel) {
-				return e.Kind == JianKind.Tsunami ? "TitleTsunamiCancel" : "TitleCancel";
-			}
-			if (e.Kind == JianKind.EarlyWarning && IsJmaEew(e.Agency)) {
-				return e.IsWarn ? "TitleJmaEewWarning" : "TitleJmaEewForecast";
-			}
-			return e.Kind switch {
-				JianKind.EarlyWarning => "TitleEew",
-				JianKind.Bulletin => "TitleBulletin",
-				JianKind.Tsunami => "TitleTsunami",
-				JianKind.Weather => "TitleWeather",
-				_ => "TitleOther",
-			};
 		}
 	}
 }

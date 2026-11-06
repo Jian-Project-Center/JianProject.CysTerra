@@ -18,6 +18,10 @@
 		"TtsLead": "{0} ",
 		"TtsMagnitude": ", magnitude {0}",
 		"TtsPlace": ", {0}",
-		"TtsRepeatTitle": "Earthquake info"
+		"TtsRepeatTitle": "Earthquake info",
+		"TitleReport": "Earthquake report. ",
+		"TypeAutomatic": "automatic determination",
+		"TypeReviewed": "reviewed determination",
+		"TtsCencType": ", {0}"
 	}
 }

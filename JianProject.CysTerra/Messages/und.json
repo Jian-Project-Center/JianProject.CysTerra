@@ -19,7 +19,7 @@
 		"PropertySerial": "报数",
 		"SourceName": "Jian Project",
 		"SourceNameTyped": "Jian Project（{0}）",
-		"TitleBulletin": "地震事件",
+		"TitleBulletin": "地震信息",
 		"TitleCancel": "取消报",
 		"TitleEew": "地震预警",
 		"TitleEewUpdate": "地震预警更新",
@@ -28,7 +28,12 @@
 		"TitleOther": "灾害情报",
 		"TitleTsunami": "海啸情报",
 		"TitleTsunamiCancel": "海啸情报解除",
-		"TitleWeather": "气象预警"
+		"TitleWeather": "气象预警",
+		"TitleReport": "地震报告",
+		"PropertyQualityValueAutomatic": "自动测定",
+		"PropertyQualityValueReviewed": "正式测定",
+		"PropertyQualityValueLevel": "等级法假定震源",
+		"PropertyQualityValuePLUM": "PLUM法假定震源"
 	},
 	"StringSets": {
 		"EndpointModes": {

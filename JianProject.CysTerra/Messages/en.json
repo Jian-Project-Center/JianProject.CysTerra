@@ -28,7 +28,12 @@
 		"TitleOther": "Hazard report",
 		"TitleTsunami": "Tsunami information",
 		"TitleTsunamiCancel": "Tsunami cancellation",
-		"TitleWeather": "Weather warning"
+		"TitleWeather": "Weather warning",
+		"TitleReport": "Earthquake report",
+		"PropertyQualityValueAutomatic": "Automatic",
+		"PropertyQualityValueReviewed": "Reviewed",
+		"PropertyQualityValueLevel": "Level-method forecast",
+		"PropertyQualityValuePLUM": "PLUM-method forecast"
 	},
 	"StringSets": {
 		"EndpointModes": {

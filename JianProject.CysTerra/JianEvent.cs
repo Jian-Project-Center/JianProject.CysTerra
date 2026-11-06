@@ -23,6 +23,10 @@ namespace JianProject.CysTerra {
 		public bool IsAssumption { get; init; }
 		/// <summary>JMA 紧急地震速报（警报）；其它源通常为 false。</summary>
 		public bool IsWarn { get; init; }
+		/// <summary>CENC：正式测定 true / 自动测定 false；非 CENC 为 null。</summary>
+		public bool? IsReviewed { get; init; }
+		/// <summary>HKO：verificationStatus=Y 时为 true。</summary>
+		public bool? IsVerified { get; init; }
 		public string? Place { get; init; }
 		public string? PlaceZh { get; init; }
 		public string? ForwardAgency { get; init; }

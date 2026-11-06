@@ -88,6 +88,8 @@ namespace JianProject.CysTerra {
 				|| Contains(infoType, "警報") || Contains(infoType, "警报")
 				|| Contains(title, "警報") || Contains(title, "警报")
 				|| (infoType != null && infoType.Equals("Warning", StringComparison.OrdinalIgnoreCase));
+			var reviewed = ParseReviewed(agency, kind, infoType, data);
+			var verified = ParseVerified(agency, data);
 
 			if (kind == JianKind.Other && place == null && title == null && magnitude == null && detail == null) {
 				return null;
@@ -98,6 +100,8 @@ namespace JianProject.CysTerra {
 			var fingerprint = string.Join("|",
 				agency, unit, serial?.ToString(CultureInfo.InvariantCulture) ?? "",
 				cancel ? "1" : "0", final ? "1" : "0", warn ? "1" : "0",
+				reviewed is true ? "R" : reviewed is false ? "A" : "",
+				verified is true ? "V" : verified is false ? "U" : "",
 				Fmt(magnitude), Fmt(depth), Fmt(latitude), Fmt(longitude),
 				place ?? "", placeZh ?? "", forward ?? "", title ?? "", intensity ?? "", infoType ?? "", detail ?? "");
 
@@ -110,6 +114,8 @@ namespace JianProject.CysTerra {
 				IsFinal = final,
 				IsAssumption = assumption,
 				IsWarn = warn,
+				IsReviewed = reviewed,
+				IsVerified = verified,
 				Place = place,
 				PlaceZh = placeZh,
 				ForwardAgency = forward,
@@ -124,6 +130,63 @@ namespace JianProject.CysTerra {
 				Detail = detail,
 				Fingerprint = fingerprint,
 			};
+		}
+
+		/// <summary>
+		/// CENC：对齐 Fan（autoFlag/infoTypeName 含「正式」）与 Wolfx（type=reviewed）。
+		/// 能判定时写 true/false；非 CENC 速报返回 null。
+		/// </summary>
+		static bool? ParseReviewed(string agency, JianKind kind, string? infoType, JsonElement data) {
+			var head = agency.Trim().ToLowerInvariant().Replace('_', '-').Split(':')[0];
+			if (kind != JianKind.Bulletin || head != "cenc") {
+				return null;
+			}
+			var autoFlag = FirstText(data, "autoFlag", "AutoFlag");
+			if (autoFlag == "I") {
+				return true;
+			}
+			if (autoFlag == "A") {
+				return false;
+			}
+			if (Contains(infoType, "正式") || Contains(infoType, "人工")) {
+				return true;
+			}
+			if (Contains(infoType, "自动") || Contains(infoType, "自動")) {
+				return false;
+			}
+			foreach (var key in new[] { "type", "Type", "status", "Status", "evaluationStatus" }) {
+				var eval = FirstText(data, key);
+				if (string.IsNullOrEmpty(eval)) {
+					continue;
+				}
+				var t = eval.Trim().ToLowerInvariant();
+				if (t is "reviewed" or "manual" or "final"
+					|| t.Contains("reviewed") || t.Contains("正式") || t.Contains("人工")) {
+					return true;
+				}
+				if (t is "automatic" or "auto"
+					|| t.Contains("automatic") || t.Contains("自动") || t.Contains("自動")) {
+					return false;
+				}
+			}
+			// Fan：未标正式则按自动测定展示
+			return false;
+		}
+
+		static bool? ParseVerified(string agency, JsonElement data) {
+			var head = agency.Trim().ToLowerInvariant().Replace('_', '-').Split(':')[0];
+			if (head != "hko") {
+				return null;
+			}
+			var status = FirstText(data, "verificationStatus", "VerificationStatus", "verified");
+			if (string.IsNullOrEmpty(status)) {
+				return false;
+			}
+			var s = status.Trim();
+			if (s is "Y" or "y" or "1" or "true" or "True" or "TRUE" or "yes") {
+				return true;
+			}
+			return false;
 		}
 
 		static string NormalizeAgency(string agency, JsonElement data) {
