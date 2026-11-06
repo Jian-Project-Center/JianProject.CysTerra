@@ -14,7 +14,7 @@
 | 事件详情 | `JianProject.CysTerra.Features-0.1.4.8.zip` |
 | 语音消息 | `JianProject.CysTerra.TTS-0.1.4.8.zip` |
 
-每个 zip 的主 dll 与对应 `*.deps.json` 须位于根目录（从 `bin/ext/Release` 打包），可直接导入；缺少 deps.json 会导致 CysTerra 提示「未在目录中找到扩展」。发布附件见本仓库 [Releases](https://github.com/Jian11323/JianProject.CysTerra/releases)。
+每个 zip 的主 dll 与对应 `*.deps.json` 须位于根目录（从 `bin/ext/Release` 打包），可直接导入；缺少 deps.json 会导致 CysTerra 提示「未在目录中找到扩展」。发布附件见本仓库 [Releases](https://github.com/Jian-Project-Center/JianProject.CysTerra/releases)。
 
 ## 配置
 
@@ -46,6 +46,8 @@
 
 ## 许可证
 
-版权所有 © 2026 纪安。
+版权所有 © 2026 纪安 / Jian Project Center。
+
+联系邮箱：jianproject@163.com
 
 本程序以 **GNU LGPL-3.0-or-later** 授权。LGPL 正文见 `LICENSE.txt`，其所引用的 GPL-3.0 正文见 `COPYING.txt`。对应源代码即本仓库；发布的扩展包内同时附带这两份许可证。
