@@ -76,7 +76,8 @@ namespace JianProject.CysTerra {
 				if (events.Count == 0) {
 					return;
 				}
-				// Fan Studio: initial 整帧丢弃；本站: type=all 快照 + 连接后首帧业务（含单源 ProvideLatest）
+				// Fan Studio: initial；本站: type=all 快照 + 连接后首帧：默认不播 TTS。
+				// 未过期/未解除的海啸仍灌列表与地图（IsCatchUp），避免重连后空白。
 				var silent = _dropFirstBusiness
 					|| string.Equals(type, "all", StringComparison.Ordinal)
 					|| string.Equals(type, "initial", StringComparison.Ordinal);
@@ -84,6 +85,11 @@ namespace JianProject.CysTerra {
 					_dropFirstBusiness = false;
 					foreach (var evt in events) {
 						_seen[evt.UnitId] = evt.Fingerprint;
+						if (!ShouldCatchUp(evt)) {
+							continue;
+						}
+						evt.IsCatchUp = true;
+						Received?.Invoke(this, evt);
 					}
 					return;
 				}
@@ -101,6 +107,17 @@ namespace JianProject.CysTerra {
 		}
 
 		bool Accept(string agency) => JianSources.Allows(_filter, agency);
+
+		/// <summary>海啸：未解除，且无截止或截止仍在未来 → 快照灌库。</summary>
+		static bool ShouldCatchUp(JianEvent e) {
+			if (e.Kind != JianKind.Tsunami || e.IsCancel) {
+				return false;
+			}
+			if (!JianTestFlags.IgnoreTsunamiExpire && e.ExpireUtc is DateTime exp && exp <= DateTime.UtcNow) {
+				return false;
+			}
+			return true;
+		}
 
 		static Uri WithKey(Uri uri, string key) {
 			var builder = new UriBuilder(uri);

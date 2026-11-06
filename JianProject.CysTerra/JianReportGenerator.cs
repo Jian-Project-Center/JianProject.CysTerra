@@ -28,20 +28,36 @@ namespace JianProject.CysTerra {
 			var res = lres.RootMessageStringSet;
 			var titleKey = JianTitles.TitleKey(e);
 			var accuracy = JianTitles.AccuracyOrder(e);
+			var preferZh = culture.TwoLetterISOLanguageName is "zh" or "yue"
+				|| culture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+			var title = e.Kind == JianKind.Tsunami
+				? JianTitles.TsunamiGradeTitle(e, preferZh)
+				: res.GetStringRequired(titleKey);
 			var result = new ReportModel {
 				Source = JianSources.AuthorityLabel(culture, e.Agency, e.ForwardAgency),
-				Title = res.GetStringRequired(titleKey),
+				Title = title,
 				TimeZone = TimeZoneInfo.Utc,
 				UtcIssueTime = DateTime.UtcNow,
 			};
-			if (e.Latitude is double nameLat && e.Longitude is double nameLon) {
-				context.NameLocationTo(result, nameLat, nameLon, SharedCultures.Get("zh-CN"), culture);
+			// 海啸：只用上游官方震源地名 Place（如 関東東方沖），禁止 NameLocationTo / placename_zh
+			// （FE 反地理编码会多出「日本本州东岸近海」，与官方 JMAAtom 不一致）
+			if (e.Kind == JianKind.Tsunami) {
+				if (!string.IsNullOrEmpty(e.Place)) {
+					result.Location = e.Place;
+					// 12=点位级，分组时压过 FE 格网 specificity=3，避免组内再叠中文通用地名
+					result.LocationSpecificity = 12;
+				}
 			}
-			if (result.Location == null) {
-				var fallback = e.PlaceZh ?? e.Place ?? e.Title;
-				if (!string.IsNullOrEmpty(fallback)) {
-					result.Location = fallback;
-					result.LocationSpecificity = e.PlaceZh != null ? 3 : 8;
+			else {
+				if (e.Latitude is double nameLat && e.Longitude is double nameLon) {
+					context.NameLocationTo(result, nameLat, nameLon, SharedCultures.Get("zh-CN"), culture);
+				}
+				if (result.Location == null) {
+					var fallback = e.PlaceZh ?? e.Place;
+					if (!string.IsNullOrEmpty(fallback)) {
+						result.Location = fallback;
+						result.LocationSpecificity = e.PlaceZh != null ? 3 : 8;
+					}
 				}
 			}
 
@@ -49,13 +65,22 @@ namespace JianProject.CysTerra {
 				result.Time = new DateTimeOffset(DateTime.SpecifyKind(origin, DateTimeKind.Utc));
 			}
 
-			if (e.Kind == JianKind.EarlyWarning || e.Kind == JianKind.Tsunami) {
-				var issued = e.OriginUtc ?? DateTime.UtcNow;
-				result.InvalidatedTime = new DateTimeOffset(
-					DateTime.SpecifyKind(issued, DateTimeKind.Utc) + TimeSpan.FromMinutes(e.IsFinal || e.IsCancel ? 10 : 3));
-			}
 			if (e.IsCancel) {
 				result.InvalidatedTime = new DateTimeOffset(DateTime.UtcNow);
+			}
+			else if (e.Kind == JianKind.Tsunami) {
+				// 对齐官方 JMAAtom：有 ValidDateTime/endTime 用它；注意报/警报无截止则 MaxValue 直到解除
+				if (!JianTestFlags.IgnoreTsunamiExpire && e.ExpireUtc is DateTime exp) {
+					result.InvalidatedTime = new DateTimeOffset(DateTime.SpecifyKind(exp, DateTimeKind.Utc));
+				}
+				else {
+					result.InvalidatedTime = DateTimeOffset.MaxValue;
+				}
+			}
+			else if (e.Kind == JianKind.EarlyWarning) {
+				var issued = e.OriginUtc ?? DateTime.UtcNow;
+				result.InvalidatedTime = new DateTimeOffset(
+					DateTime.SpecifyKind(issued, DateTimeKind.Utc) + TimeSpan.FromMinutes(e.IsFinal ? 10 : 3));
 			}
 
 			result.GroupKeys.Add(new ReportUnitKey(e.Agency, e.UnitId));
@@ -91,8 +116,12 @@ namespace JianProject.CysTerra {
 			}
 
 			if (e.Magnitude is double magnitude) {
+				var magKey = (e.MagnitudeType != null && e.MagnitudeType.StartsWith("Mj", StringComparison.OrdinalIgnoreCase))
+					|| e.Agency.StartsWith("jma", StringComparison.OrdinalIgnoreCase)
+					? MagnitudeJMA
+					: Magnitude;
 				result.Properties.Add(new(
-					Magnitude,
+					magKey,
 					res.GetStringRequired("PropertyMagnitude"),
 					magnitude.ToString("0.0", culture),
 					context.SeverityScheme,
@@ -134,7 +163,14 @@ namespace JianProject.CysTerra {
 					-1f) { AccuracyOrder = accuracy });
 			}
 
-			if (!string.IsNullOrEmpty(e.Detail) && e.Detail != e.Place && e.Detail != e.Title && e.Detail != e.PlaceZh) {
+			// 海啸：列表/详情摘要用上游描述（非档位名+时间）；其它源仍用 Detail
+			if (e.Kind == JianKind.Tsunami) {
+				var narrative = JianTitles.TsunamiNarrative(e);
+				if (!string.IsNullOrEmpty(narrative)) {
+					result.Predicate = narrative;
+				}
+			}
+			else if (!string.IsNullOrEmpty(e.Detail) && e.Detail != e.Place && e.Detail != e.Title && e.Detail != e.PlaceZh) {
 				result.Predicate = e.Detail;
 			}
 			else if (e.IsAssumption) {

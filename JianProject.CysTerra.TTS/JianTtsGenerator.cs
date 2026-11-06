@@ -1,6 +1,7 @@
 using Cryville.Common.Compat;
 using JianProject.CysTerra;
 using Cryville.EEW.TTS;
+using System;
 using System.Globalization;
 using System.Text;
 using Cryville.EEW;
@@ -16,20 +17,37 @@ namespace JianProject.CysTerra.TTS {
 
 		public TTSEntry? Generate(JianEvent e, ITTSMessageGeneratorContext? context, ref CultureInfo culture) {
 			ThrowHelper.ThrowIfNull(e);
+			if (e.IsCatchUp) {
+				return null;
+			}
 			if (JianSources.Resolve(e.Agency) != _source) {
 				return null;
+			}
+			// Messages 目录是 zh.json（不是 zh-CN）；强行 zh-CN 会匹配失败回落 en → TTS 变英文
+			var preferZh = IsChineseCulture(culture);
+			if (preferZh) {
+				culture = SharedCultures.Get("zh");
 			}
 			using var lres = new LocalizedResource("", ref culture);
 			var res = lres.RootMessageStringSet;
 
 			var spoken = new StringBuilder();
 			spoken.Append(string.Format(culture, res.GetStringRequired("TtsLead"), JianSources.AuthoritySpeechLabel(culture, e.Agency, e.ForwardAgency)));
-			spoken.Append(res.GetStringRequired(JianTitles.TitleKey(e)));
+			if (e.Kind == JianKind.Tsunami) {
+				spoken.Append(JianTitles.TsunamiGradeTitle(e, preferZh));
+				spoken.Append("。");
+			}
+			else {
+				spoken.Append(res.GetStringRequired(JianTitles.TitleKey(e)));
+			}
 			if (JianTitles.IsCencBulletin(e) && e.IsReviewed is bool reviewed) {
 				var type = res.GetStringRequired(reviewed ? "TypeReviewed" : "TypeAutomatic");
 				spoken.Append(string.Format(culture, res.GetStringRequired("TtsCencType"), type));
 			}
-			var place = e.PlaceZh ?? e.Place ?? e.Title;
+			// 海啸只读官方 Place，避免 FE 中文通用地名进播报
+			var place = e.Kind == JianKind.Tsunami
+				? (e.Place ?? e.Title)
+				: (e.PlaceZh ?? e.Place ?? e.Title);
 			if (!string.IsNullOrEmpty(place)) {
 				spoken.Append(string.Format(culture, res.GetStringRequired("TtsPlace"), place));
 			}
@@ -42,8 +60,11 @@ namespace JianProject.CysTerra.TTS {
 			if (!string.IsNullOrEmpty(e.Intensity)) {
 				spoken.Append(string.Format(culture, res.GetStringRequired("TtsIntensity"), e.Intensity));
 			}
-			if (!string.IsNullOrEmpty(e.Detail) && e.Kind == JianKind.Tsunami) {
-				spoken.Append(string.Format(culture, res.GetStringRequired("TtsDetail"), e.Detail));
+			if (e.Kind == JianKind.Tsunami) {
+				var detail = JianTitles.TsunamiNarrative(e) ?? e.Detail;
+				if (!string.IsNullOrEmpty(detail)) {
+					spoken.Append(string.Format(culture, res.GetStringRequired("TtsDetail"), detail));
+				}
 			}
 
 			// CysTerra 文档：数值越小优先级越高；普通 0，紧急 -100。
@@ -61,6 +82,10 @@ namespace JianProject.CysTerra.TTS {
 			}
 			return new TTSEntry(culture, repeatTitle, spoken.ToString(), priority, SoundFor(e));
 		}
+
+		static bool IsChineseCulture(CultureInfo culture) =>
+			culture.TwoLetterISOLanguageName is "zh" or "yue"
+			|| culture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
 
 		static string? SoundFor(JianEvent e) {
 			if (e.Kind == JianKind.EarlyWarning) {

@@ -63,22 +63,59 @@ namespace JianProject.CysTerra {
 			}
 
 			var kind = Classify(agency);
-			var placeZh = FirstText(data, "placename_zh", "placeName_zh", "place_name_zh");
+			// 海啸不用 FE placename_zh（会变成「日本本州东岸近海」叠在官方震源名上）
+			var placeZh = kind == JianKind.Tsunami
+				? null
+				: FirstText(data, "placename_zh", "placeName_zh", "place_name_zh");
 			var place = FirstText(data, "placeName", "Hypocenter", "hypocenter", "place", "epicenter", "location", "Place");
 			var forward = FirstText(data, "agency");
-			var title = FirstText(data, "title", "Title", "headline");
+			var title = FirstText(data, "title", "Title");
+			var headline = FirstText(data, "headline", "Headline");
+			var description = FirstText(data, "description", "Description");
+			var comment = FirstText(data, "comment", "Comment");
 			var infoType = FirstText(data, "infoTypeName", "infoType", "alertflg");
 			var magnitude = Num(data, "magnitude", "Magunitude", "Magnitude");
+			var magType = FirstText(data, "magnitudeType", "MagnitudeType", "magType");
 			var depth = DepthKm(data);
 			var latitude = Num(data, "latitude", "Latitude");
 			var longitude = Num(data, "longitude", "Longitude");
-			var origin = Time(data, "originTime", "shockTime", "time", "Time", "reportTime");
+			// 海啸：优先发震时刻 shockTime（对齐官方详情时间）；其它源仍用 originTime
+			var origin = kind == JianKind.Tsunami
+				? Time(data, "shockTime", "originTime", "time", "Time", "reportTime")
+				: Time(data, "originTime", "shockTime", "time", "Time", "reportTime");
 			var intensity = FirstText(data, "maxIntensity", "MaxIntensity", "intensity", "epiIntensity");
-			var detail = DetailText(data, kind);
+			var detail = !string.IsNullOrEmpty(headline)
+				? headline
+				: (!string.IsNullOrEmpty(description) ? FirstLine(description) : DetailText(data, kind));
 			var serial = Int(data, "serial", "number", "Serial", "updates", "reportNum", "ReportNum");
+			var level = FirstText(data, "level", "Level");
+			var expire = kind == JianKind.Tsunami
+				? Time(data, "endTime", "expireTime", "expire_ms", "validUntil", "until", "ValidDateTime", "validDateTime")
+				: null;
+			if (kind == JianKind.Tsunami && JianTestFlags.IgnoreTsunamiExpire) {
+				expire = null; // 临时手测：不过期
+			}
+			var tsunamiAreas = kind == JianKind.Tsunami ? ParseTsunamiAreas(data) : null;
 			var cancel = Flag(data, "isCancel", "isCanceled", "isCancelled", "canceled", "cancelled", "is_cancel", "cancel")
 				|| Contains(infoType, "取消")
 				|| Contains(title, "取消");
+			if (kind == JianKind.Tsunami && !cancel) {
+				var active = 0;
+				if (tsunamiAreas != null) {
+					foreach (var a in tsunamiAreas) {
+						if (!a.Cleared && !IsTsunamiNone(a.Kind)) {
+							active++;
+						}
+					}
+				}
+				var clearedFlag = Flag(data, "cleared");
+				if ((clearedFlag && active == 0)
+					|| (tsunamiAreas != null && tsunamiAreas.Count > 0 && active == 0)
+					|| (Contains(title, "解除") && active == 0)
+					|| Contains(level, "解除")) {
+					cancel = true;
+				}
+			}
 			var final = Flag(data, "isFinal", "is_final", "final", "isLast", "isLastInfo");
 			var assumption = Flag(data, "isAssumption", "is_assumption", "assumption", "isAssumed", "isPLUM", "isPlum", "is_plum")
 				|| Contains(place, "仮定")
@@ -103,7 +140,8 @@ namespace JianProject.CysTerra {
 				reviewed is true ? "R" : reviewed is false ? "A" : "",
 				verified is true ? "V" : verified is false ? "U" : "",
 				Fmt(magnitude), Fmt(depth), Fmt(latitude), Fmt(longitude),
-				place ?? "", placeZh ?? "", forward ?? "", title ?? "", intensity ?? "", infoType ?? "", detail ?? "");
+				place ?? "", placeZh ?? "", forward ?? "", title ?? "", intensity ?? "", infoType ?? "", detail ?? "", description ?? "", comment ?? "",
+				expire?.Ticks.ToString(CultureInfo.InvariantCulture) ?? "");
 
 			return new JianEvent {
 				Kind = kind,
@@ -121,13 +159,19 @@ namespace JianProject.CysTerra {
 				ForwardAgency = forward,
 				Title = title,
 				InfoType = infoType,
+				Headline = headline,
+				Description = description,
+				Comment = comment,
+				MagnitudeType = magType,
 				Magnitude = magnitude,
 				DepthKm = depth,
 				Latitude = latitude,
 				Longitude = longitude,
 				OriginUtc = origin,
+				ExpireUtc = expire,
 				Intensity = intensity,
 				Detail = detail,
+				TsunamiAreas = tsunamiAreas,
 				Fingerprint = fingerprint,
 			};
 		}
@@ -307,7 +351,59 @@ namespace JianProject.CysTerra {
 			return FirstText(data, "description", "text", "content", "message", "level");
 		}
 
+		static IReadOnlyList<JianTsunamiArea>? ParseTsunamiAreas(JsonElement data) {
+			if (!data.TryGetProperty("area", out var area) || area.ValueKind != JsonValueKind.Array) {
+				return null;
+			}
+			var list = new List<JianTsunamiArea>();
+			foreach (var item in area.EnumerateArray()) {
+				if (item.ValueKind != JsonValueKind.Object) {
+					continue;
+				}
+				var name = FirstText(item, "name") ?? "";
+				if (name.Length == 0) {
+					continue;
+				}
+				var kindName = FirstText(item, "kind") ?? "";
+				var kindCode = FirstText(item, "kindCode", "KindCode") ?? "";
+				var code = FirstText(item, "code") ?? "";
+				var cleared = Flag(item, "cleared") || IsTsunamiNone(kindName) || kindCode == "00";
+				var maxH = Num(item, "maxHeight", "MaxHeight", "height");
+				var maxDesc = FirstText(item, "maxHeightDesc", "MaxHeightDesc") ?? "";
+				list.Add(new JianTsunamiArea {
+					Code = code,
+					Name = name,
+					Kind = kindName,
+					KindCode = kindCode,
+					Cleared = cleared,
+					MaxHeightM = maxH,
+					MaxHeightDesc = maxDesc,
+				});
+			}
+			return list.Count > 0 ? list : null;
+		}
+
+		static bool IsTsunamiNone(string? kind) {
+			if (string.IsNullOrEmpty(kind)) {
+				return false;
+			}
+			return kind == "津波なし"
+				|| kind.Contains("解除", StringComparison.Ordinal)
+				|| kind.Contains("切替", StringComparison.Ordinal)
+				|| kind.Contains("失効", StringComparison.Ordinal);
+		}
+
+		static string? FirstLine(string? text) {
+			if (string.IsNullOrWhiteSpace(text)) {
+				return null;
+			}
+			var t = text.Replace("\r\n", "\n").Trim();
+			var nl = t.IndexOf('\n');
+			return nl < 0 ? t : t.Substring(0, nl).Trim();
+		}
+
 		static string? FirstText(JsonElement obj, params string[] keys) {
+
 			if (obj.ValueKind != JsonValueKind.Object) {
 				return null;
 			}
