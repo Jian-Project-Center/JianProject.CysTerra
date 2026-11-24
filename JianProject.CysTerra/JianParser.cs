@@ -55,7 +55,8 @@ namespace JianProject.CysTerra {
 
 		static JianEvent? Map(string agency, JsonElement data) {
 			agency = NormalizeAgency(agency, data);
-			if (agency.Length == 0 || IsStationFeed(agency) || SkipAgency(agency)) {
+			// 不在处理列表内的 type/agency 直接丢弃（测站、气象、已下架源、未知源等）
+			if (agency.Length == 0 || !JianSources.IsHandled(agency)) {
 				return null;
 			}
 			if (Flag(data, "isTraining", "is_training", "training")) {
@@ -127,10 +128,6 @@ namespace JianProject.CysTerra {
 				|| (infoType != null && infoType.Equals("Warning", StringComparison.OrdinalIgnoreCase));
 			var reviewed = ParseReviewed(agency, kind, infoType, data);
 			var verified = ParseVerified(agency, data);
-
-			if (kind == JianKind.Other && place == null && title == null && magnitude == null && detail == null) {
-				return null;
-			}
 
 			var eventId = FirstText(data, "id", "EventID", "eventId", "event_id");
 			var unit = eventId ?? BuildUnit(agency, origin, latitude, longitude, place, title);
@@ -245,38 +242,14 @@ namespace JianProject.CysTerra {
 		}
 
 		static JianKind Classify(string agency) {
-			var a = agency.Trim().ToLowerInvariant().Replace('_', '-');
-			var head = a.Split(':')[0];
+			var head = agency.Trim().ToLowerInvariant().Replace('_', '-').Split(':')[0];
 			if (head == "jma-tsunami") {
 				return JianKind.Tsunami;
 			}
-			if (head is "jma-eew" or "cea" or "cea-pr" or "cwa-eew" or "sa" or "kma-eew"
-				|| head.EndsWith("-eew", StringComparison.Ordinal)
-				|| head.StartsWith("cea-pr", StringComparison.Ordinal)) {
+			if (head is "jma-eew" or "cea" or "cea-pr" or "cwa-eew" or "sa" or "kma-eew") {
 				return JianKind.EarlyWarning;
 			}
-			if (IsKnownBulletin(head)) {
-				return JianKind.Bulletin;
-			}
-			return JianKind.Other;
-		}
-
-		static bool IsKnownBulletin(string head) => head is
-			"cenc" or "cenc-fjdzj" or "ningxia" or "yunnan" or "shanxi" or "beijing" or "cwa" or "jma" or "hko"
-			or "kma" or "tmd" or "mmd" or "bmkg" or "geonet" or "usgs" or "emsc" or "gfz" or "bcsf" or "ingv"
-			or "usp" or "nrcan" or "afad" or "ipma" or "noa" or "sed" or "scsn" or "ipgp" or "infp" or "isc"
-			or "knmi" or "ncedc" or "lmu" or "koeri" or "gsras" or "csn" or "phivolcs" or "ssn" or "ga"
-			or "igepn" or "peru";
-
-		static bool SkipAgency(string agency) {
-			var head = agency.Trim().ToLowerInvariant().Replace('_', '-').Split(':')[0];
-			if (head is "weather" or "early-est" or "earlyest" or "cenc-ir") {
-				return true;
-			}
-			if (head.Contains("volcano")) {
-				return true;
-			}
-			return head.EndsWith("-tsunami", StringComparison.Ordinal) && head != "jma-tsunami";
+			return JianKind.Bulletin;
 		}
 
 		static bool IsStationFeed(string type) {

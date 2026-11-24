@@ -153,108 +153,13 @@ namespace JianProject.CysTerra.TTS {
 	}
 
 	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianNrcanTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Nrcan;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
 	public sealed class JianAfadTtsBuilder : JianTtsSourceBuilder {
 		protected override JianSource Source => JianSource.Afad;
 	}
 
 	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianIpmaTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Ipma;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianNoaTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Noa;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianSedTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Sed;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianScsnTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Scsn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianIpgpTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Ipgp;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianInfpTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Infp;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianIscTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Isc;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianKnmiTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Knmi;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianNcedcTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Ncedc;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianLmuTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Lmu;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianKoeriTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Koeri;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianGsrasTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Gsras;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianCsnTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Csn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianPhivolcsTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Phivolcs;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianSsnTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Ssn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
 	public sealed class JianGaTtsBuilder : JianTtsSourceBuilder {
 		protected override JianSource Source => JianSource.Ga;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianIgepnTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Igepn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianPeruTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Peru;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<TTSEntry>>))]
-	public sealed class JianOtherTtsBuilder : JianTtsSourceBuilder {
-		protected override JianSource Source => JianSource.Other;
 	}
 
 }

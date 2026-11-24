@@ -154,107 +154,12 @@ namespace JianProject.CysTerra.Features {
 	}
 
 	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianNrcanFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Nrcan;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
 	public sealed class JianAfadFeatureBuilder : JianFeatureSourceBuilder {
 		protected override JianSource Source => JianSource.Afad;
 	}
 
 	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianIpmaFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Ipma;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianNoaFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Noa;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianSedFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Sed;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianScsnFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Scsn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianIpgpFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Ipgp;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianInfpFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Infp;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianIscFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Isc;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianKnmiFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Knmi;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianNcedcFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Ncedc;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianLmuFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Lmu;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianKoeriFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Koeri;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianGsrasFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Gsras;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianCsnFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Csn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianPhivolcsFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Phivolcs;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianSsnFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Ssn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
 	public sealed class JianGaFeatureBuilder : JianFeatureSourceBuilder {
 		protected override JianSource Source => JianSource.Ga;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianIgepnFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Igepn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianPeruFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Peru;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<Feature>>))]
-	public sealed class JianOtherFeatureBuilder : JianFeatureSourceBuilder {
-		protected override JianSource Source => JianSource.Other;
 	}
 }

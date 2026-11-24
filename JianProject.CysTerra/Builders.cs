@@ -198,107 +198,12 @@ namespace JianProject.CysTerra {
 	}
 
 	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianNrcanReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Nrcan;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
 	public sealed class JianAfadReportBuilder : JianReportSourceBuilder {
 		protected override JianSource Source => JianSource.Afad;
 	}
 
 	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianIpmaReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Ipma;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianNoaReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Noa;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianSedReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Sed;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianScsnReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Scsn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianIpgpReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Ipgp;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianInfpReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Infp;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianIscReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Isc;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianKnmiReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Knmi;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianNcedcReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Ncedc;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianLmuReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Lmu;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianKoeriReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Koeri;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianGsrasReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Gsras;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianCsnReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Csn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianPhivolcsReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Phivolcs;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianSsnReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Ssn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
 	public sealed class JianGaReportBuilder : JianReportSourceBuilder {
 		protected override JianSource Source => JianSource.Ga;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianIgepnReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Igepn;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianPeruReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Peru;
-	}
-
-	[Export(typeof(IBuilder<IGenerator<ReportModel>>))]
-	public sealed class JianOtherReportBuilder : JianReportSourceBuilder {
-		protected override JianSource Source => JianSource.Other;
 	}
 }
